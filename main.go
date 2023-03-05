@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -25,15 +27,27 @@ func main() {
 	ph := handlers.NewProducts(l)
 
 	// create a serveMux
-	mux := http.NewServeMux()
-	mux.Handle("/", ph)
-	mux.Handle("/goodbye", gb)
+	// mux := http.NewServeMux()
+	// mux.Handle("/", ph)
+	// mux.Handle("/goodbye", gb)
+
+	// using Gorilla mux
+	sm := mux.NewRouter()
+
+	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", ph.GetAllProducts)
+	getRouter.HandleFunc("/goodbye", gb.ServeHTTP)
+
+	// lets create handlers for all the HTTP Methods
+
+	putRouter := sm.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
 
 	// create the server object
 
 	s := http.Server{
 		Addr:         ":9000",
-		Handler:      mux,
+		Handler:      sm,
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -42,6 +56,7 @@ func main() {
 	// create a go routine to start the server in async
 	go func() {
 		s.ListenAndServe()
+		fmt.Println("Server started at port 9000")
 	}()
 
 	// implement graceful shutdown

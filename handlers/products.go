@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type Products struct {
@@ -57,7 +59,7 @@ func (p *Products) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 		p.l.Println("Got it", id)
 
-		p.UpdateProducts(id, rw, r)
+		p.UpdateProducts(rw, r)
 
 	}
 
@@ -91,12 +93,20 @@ func (p *Products) addProduct(rw http.ResponseWriter, r *http.Request) {
 	data.AddProduct(prod)
 }
 
-func (p *Products) UpdateProducts(id int, rw http.ResponseWriter, r *http.Request) {
+func (p *Products) UpdateProducts(rw http.ResponseWriter, r *http.Request) {
 	p.l.Println("Handling PUT products")
+
+	vars := mux.Vars(r)
+	fmt.Println("ID : ", vars)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(rw, "Unable to extract ID for URI", http.StatusBadRequest)
+		return
+	}
 
 	prod := &data.Product{}
 	fmt.Println(r.Body)
-	err := prod.FromJSON(r.Body)
+	err = prod.FromJSON(r.Body)
 	if err != nil {
 		http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
 		return
